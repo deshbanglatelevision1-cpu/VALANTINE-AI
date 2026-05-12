@@ -156,19 +156,31 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         parts: m.parts.map(p => {
           if (p.text) return { text: p.text };
           if (p.image) {
+            const mimeType = p.image.split(';')[0].split(':')[1] || "image/jpeg";
             const base64Data = p.image.split(',')[1];
-            return { inlineData: { data: base64Data, mimeType: "image/jpeg" } };
+            return { inlineData: { data: base64Data, mimeType } };
+          }
+          if (p.video) {
+            const mimeType = p.video.split(';')[0].split(':')[1] || "video/mp4";
+            const base64Data = p.video.split(',')[1];
+            return { inlineData: { data: base64Data, mimeType } };
+          }
+          if (p.audio) {
+            const mimeType = p.audio.split(';')[0].split(':')[1] || "audio/mpeg";
+            const base64Data = p.audio.split(',')[1];
+            return { inlineData: { data: base64Data, mimeType } };
           }
           return { text: "" };
         })
       }));
 
       // Add current message parts
-      const currentParts = [{ text: input }];
+      const currentParts: any[] = [{ text: input || (currentAttachments.some(a => a.type === 'image') ? "Please analyze and describe the attached image(s) in detail." : "") }];
       currentAttachments.forEach(a => {
-        if (a.type === 'image') {
+        if (a.type === 'image' || a.type === 'video' || a.type === 'audio') {
+          const mimeType = a.url.split(';')[0].split(':')[1] || (a.type === 'image' ? "image/jpeg" : a.type === 'video' ? "video/mp4" : "audio/mpeg");
           const base64Data = a.url.split(',')[1];
-          currentParts.push({ inlineData: { data: base64Data, mimeType: "image/jpeg" } } as any);
+          currentParts.push({ inlineData: { data: base64Data, mimeType } });
         }
       });
 
@@ -272,11 +284,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full w-full relative overflow-hidden bg-transparent min-h-0">
+    <div className="flex flex-col flex-1 w-full relative overflow-hidden bg-transparent min-h-0">
       {/* Scrollable Message Area */}
       <div 
         ref={scrollRef}
-        className="flex-1 overflow-y-auto px-4 py-8 space-y-8 scroll-smooth custom-scrollbar min-h-0"
+        className="flex-1 overflow-y-auto px-4 py-8 space-y-8 scroll-smooth custom-scrollbar"
       >
         <AnimatePresence>
           {messages.length === 0 && (
@@ -671,20 +683,19 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           </div>
         </div>
       </div>
-    </div>
 
-    <style dangerouslySetInnerHTML={{
-        __html: `
-        .markdown-body { font-size: 14px; line-height: 1.6; }
-        .markdown-body pre { background: rgba(0,0,0,0.3) !important; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 16px; margin: 12px 0; position: relative; }
-        .markdown-body code { font-family: var(--font-mono); font-size: 13px; color: #67e8f9; }
-        .markdown-body blockquote { border-left: 4px solid #8b5cf6; padding-left: 16px; color: #94a3b8; }
-        .markdown-body table { width: 100%; border-collapse: collapse; margin: 16px 0; }
-        .markdown-body th, .markdown-body td { border: 1px solid rgba(255,255,255,0.1); padding: 8px 12px; }
-        .markdown-body th { background: rgba(255,255,255,0.05); }
-      `}} />
-  </div>
-);
+      <style dangerouslySetInnerHTML={{
+          __html: `
+          .markdown-body { font-size: 14px; line-height: 1.6; }
+          .markdown-body pre { background: rgba(0,0,0,0.3) !important; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 16px; margin: 12px 0; position: relative; }
+          .markdown-body code { font-family: var(--font-mono); font-size: 13px; color: #67e8f9; }
+          .markdown-body blockquote { border-left: 4px solid #8b5cf6; padding-left: 16px; color: #94a3b8; }
+          .markdown-body table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+          .markdown-body th, .markdown-body td { border: 1px solid rgba(255,255,255,0.1); padding: 8px 12px; }
+          .markdown-body th { background: rgba(255,255,255,0.05); }
+        `}} />
+    </div>
+  );
 };
 
 export default ChatInterface;
