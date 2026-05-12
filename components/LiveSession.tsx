@@ -13,6 +13,7 @@ const LiveSession: React.FC<LiveSessionProps> = ({ onClose }) => {
   const [isActive, setIsActive] = useState(false);
   const [transcript, setTranscript] = useState<string[]>([]);
   const [voiceBars, setVoiceBars] = useState<number[]>(new Array(50).fill(5));
+  const [sentiment, setSentiment] = useState<'normal' | 'emotional' | 'insightful'>('normal');
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -162,11 +163,34 @@ const LiveSession: React.FC<LiveSessionProps> = ({ onClose }) => {
             }
             if (msg.serverContent?.inputTranscription) {
               const text = msg.serverContent.inputTranscription.text;
-              if (text) setTranscript(prev => [`You: ${text}`, ...prev].slice(0, 10));
+              if (text) {
+                setTranscript(prev => [`You: ${text}`, ...prev].slice(0, 10));
+                
+                // Emotional triggers
+                const emotionalWords = ['love', 'heart', 'feel', 'sad', 'beautiful', 'meaningful', 'soul', 'cry'];
+                if (emotionalWords.some(w => text.toLowerCase().includes(w))) {
+                  setSentiment('emotional');
+                  setTimeout(() => setSentiment('normal'), 4000);
+                }
+              }
             }
             if (msg.serverContent?.outputTranscription) {
               const text = msg.serverContent.outputTranscription.text;
-              if (text) setTranscript(prev => [`DB GPT: ${text}`, ...prev].slice(0, 10));
+              if (text) {
+                setTranscript(prev => [`DB GPT: ${text}`, ...prev].slice(0, 10));
+                
+                // Insightful triggers
+                const insightfulWords = ['deep', 'profound', 'truth', 'wisdom', 'knowledge', 'insight', 'intelligence', 'universe', 'magic'];
+                const emotionalWords = ['love', 'heart', 'feel', 'sad', 'beautiful', 'meaningful', 'soul', 'cry'];
+                
+                if (insightfulWords.some(w => text.toLowerCase().includes(w))) {
+                  setSentiment('insightful');
+                  setTimeout(() => setSentiment('normal'), 4000);
+                } else if (emotionalWords.some(w => text.toLowerCase().includes(w))) {
+                  setSentiment('emotional');
+                  setTimeout(() => setSentiment('normal'), 4000);
+                }
+              }
             }
           },
           onerror: (e) => console.error("Live Error", e),
@@ -221,12 +245,64 @@ const LiveSession: React.FC<LiveSessionProps> = ({ onClose }) => {
 
       <div className="relative flex flex-col items-center space-y-12 w-full max-w-5xl z-10">
         <div className="relative flex items-center justify-center">
-          <div className="w-64 h-64 md:w-[400px] md:h-[400px] rounded-full overflow-hidden border-2 border-white/5 shadow-[0_0_80px_rgba(34,211,238,0.1)] flex items-center justify-center bg-slate-900 relative group p-1">
-            <div className="absolute inset-0 magical-gradient opacity-20 animate-spin-slow" />
-            <video ref={videoRef} autoPlay playsInline muted className="relative w-full h-full object-cover rounded-full grayscale opacity-40 mix-blend-overlay group-hover:opacity-60 transition-opacity duration-1000" />
+          <div className={cn(
+            "w-64 h-64 md:w-[400px] md:h-[400px] rounded-full overflow-hidden border-2 border-white/5 shadow-[0_0_80px_rgba(34,211,238,0.1)] flex items-center justify-center bg-slate-900 relative group p-1 transition-transform duration-500",
+            sentiment === 'emotional' && "animate-heartbeat border-fuchsia-500/50 shadow-[0_0_100px_rgba(217,70,239,0.3)]",
+            sentiment === 'insightful' && "border-amber-400/50 shadow-[0_0_100px_rgba(251,191,36,0.3)]"
+          )}>
+            <div className={cn(
+              "absolute inset-0 magical-gradient opacity-20 animate-spin-slow",
+              sentiment === 'insightful' && "opacity-40 animate-[spin-slow_5s_linear_infinite]"
+            )} />
+            <video ref={videoRef} autoPlay playsInline muted className={cn(
+              "relative w-full h-full object-cover rounded-full grayscale opacity-40 mix-blend-overlay group-hover:opacity-60 transition-opacity duration-1000",
+              sentiment === 'emotional' && "grayscale-0 opacity-80"
+            )} />
             
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-full h-full animate-[pulse_3s_ease-in-out_infinite] flex items-center justify-center text-cyan-400">
+              <AnimatePresence>
+                {sentiment === 'insightful' && (
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="absolute inset-0 overflow-hidden"
+                  >
+                    {[...Array(20)].map((_, i) => (
+                      <motion.div
+                        key={i}
+                        initial={{ 
+                          x: Math.random() * 400 - 200, 
+                          y: Math.random() * 400 - 200, 
+                          scale: 0,
+                          opacity: 0 
+                        }}
+                        animate={{ 
+                          scale: [0, 1, 0],
+                          opacity: [0, 1, 0],
+                          y: '-=100'
+                        }}
+                        transition={{ 
+                          duration: 2 + Math.random() * 2,
+                          repeat: Infinity,
+                          delay: Math.random() * 2
+                        }}
+                        className="absolute w-1 h-1 bg-amber-200 rounded-full blur-[1px]"
+                        style={{
+                          left: '50%',
+                          top: '50%'
+                        }}
+                      />
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <div className={cn(
+                "w-full h-full animate-[pulse_3s_ease-in-out_infinite] flex items-center justify-center text-cyan-400 transition-colors duration-500",
+                sentiment === 'emotional' && "text-fuchsia-400",
+                sentiment === 'insightful' && "text-amber-400"
+              )}>
                 <div className="scale-[4] opacity-50">{LOGO_ICON}</div>
               </div>
             </div>
@@ -286,7 +362,15 @@ const LiveSession: React.FC<LiveSessionProps> = ({ onClose }) => {
 
       <style dangerouslySetInnerHTML={{ __html: `
         @keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes heartbeat {
+          0% { transform: scale(1); }
+          15% { transform: scale(1.05); }
+          30% { transform: scale(1); }
+          45% { transform: scale(1.08); }
+          60% { transform: scale(1); }
+        }
         .animate-spin-slow { animation: spin-slow 20s linear infinite; }
+        .animate-heartbeat { animation: heartbeat 1.5s ease-in-out infinite; }
       `}} />
     </div>
   );

@@ -695,7 +695,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           .markdown-body th { background: rgba(255,255,255,0.05); }
         `}} />
     </div>
-  );
+  </div>
+);
 };
 
 export default ChatInterface;
