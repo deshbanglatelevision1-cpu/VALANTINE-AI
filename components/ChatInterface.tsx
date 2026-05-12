@@ -312,24 +312,22 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           {messages.map((msg, idx) => (
             <motion.div
               key={msg.id}
-              initial={{ opacity: 0, x: msg.role === 'user' ? 20 : -20, scale: 0.95 }}
+              initial={{ opacity: 0, x: msg.role === 'user' ? 20 : -20, scale: 0.95, filter: "brightness(1) blur(0px)" }}
               animate={{ 
                 opacity: 1, 
                 x: 0, 
                 scale: 1,
-                boxShadow: msg.role === 'ai' ? [
-                  "0 0 0px rgba(139, 92, 246, 0)",
-                  "0 0 20px rgba(139, 92, 246, 0.3)",
-                  "0 0 0px rgba(139, 92, 246, 0)"
-                ] : "none"
+                filter: ["brightness(1) blur(0px)", "brightness(1.2) blur(1px)", "brightness(1) blur(0px)"],
+                boxShadow: [
+                  "0 0 0px rgba(255, 255, 255, 0)",
+                  msg.role === 'ai' ? "0 0 30px rgba(139, 92, 246, 0.4)" : "0 0 30px rgba(34, 211, 238, 0.4)",
+                  "0 0 0px rgba(255, 255, 255, 0)"
+                ]
               }}
               transition={{ 
-                duration: 0.5,
-                boxShadow: {
-                  duration: 2,
-                  repeat: msg.role === 'ai' ? 1 : 0,
-                  repeatType: "reverse"
-                }
+                duration: 0.6,
+                boxShadow: { duration: 1.5, times: [0, 0.5, 1] },
+                filter: { duration: 1, times: [0, 0.2, 1] }
               }}
               className={cn(
                 "flex flex-col max-w-[85%] space-y-2 group relative",
@@ -346,11 +344,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   ? "magical-gradient text-white rounded-tr-none hover:shadow-cyan-500/20" 
                   : "glass-card text-slate-200 rounded-tl-none hover:bg-white/10"
               )}>
-                {msg.role === 'ai' && (
-                  <div className="absolute inset-0 pointer-events-none overflow-hidden">
-                    <div className="absolute top-0 left-0 w-1/2 h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full animate-[shimmer_2.5s_infinite]" />
-                  </div>
-                )}
+                {/* Magic Shimmer Effect on mount */}
+                <motion.div 
+                  initial={{ x: "-100%" }}
+                  animate={{ x: "100%" }}
+                  transition={{ duration: 1.2, ease: "easeInOut", delay: 0.3 }}
+                  className="absolute inset-0 pointer-events-none bg-gradient-to-r from-transparent via-white/20 to-transparent z-10"
+                />
+                
                 {msg.parts.map((part, pIdx) => (
                   <div key={pIdx}>
                     {part.text && (
