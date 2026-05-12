@@ -2,7 +2,10 @@
 import React, { useState, useRef } from 'react';
 import { GoogleGenAI } from "@google/genai";
 import { ChatMessage, AspectRatio, ImageSize } from '../types';
-import { ASPECT_RATIOS, IMAGE_SIZES, HEART_ICON } from '../constants';
+import { ASPECT_RATIOS, IMAGE_SIZES, LOGO_ICON, SPARK_ICON } from '../constants';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Image, Edit3, Wand2, Maximize2, Trash2, Camera, Sparkles } from 'lucide-react';
+import { cn } from '../lib/utils';
 
 interface ToolPanelProps {
   setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
@@ -10,7 +13,7 @@ interface ToolPanelProps {
 }
 
 const ToolPanel: React.FC<ToolPanelProps> = ({ setMessages, setIsThinking }) => {
-  const [activeTab, setActiveTab] = useState<'draw' | 'edit'>('draw');
+  const [activeTab, setActiveTab] = useState<'generate' | 'modify'>('generate');
   const [prompt, setPrompt] = useState('');
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>("1:1");
   const [status, setStatus] = useState('');
@@ -29,13 +32,12 @@ const ToolPanel: React.FC<ToolPanelProps> = ({ setMessages, setIsThinking }) => 
   const generateImage = async () => {
     if (!prompt.trim()) return;
     setIsThinking(true);
-    setStatus('আপনার স্বপ্ন আঁকছি...');
+    setStatus('Casting visual spell...');
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      // Use Gemini 2.5 Flash for free tier image generation
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
       const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash-image',
-        contents: { parts: [{ text: `Real photorealistic cinematic romantic image: ${prompt}` }] },
+        contents: { parts: [{ text: `High quality cinematic magical artwork: ${prompt}` }] },
         config: { imageConfig: { aspectRatio } }
       });
       let img = '';
@@ -46,111 +48,114 @@ const ToolPanel: React.FC<ToolPanelProps> = ({ setMessages, setIsThinking }) => 
         setMessages(prev => [...prev, { 
           id: Date.now().toString(), 
           role: 'ai', 
-          parts: [{ text: `আপনার অনুভূতির ছবি এঁকেছি:`, image: img }], 
+          parts: [{ text: `I have manifested your vision:`, image: img }], 
           timestamp: new Date() 
         }]);
       }
       setPrompt('');
-    } catch (e) { setStatus('কিছু ভুল হয়েছে...'); console.error(e); }
-    finally { setIsThinking(false); setStatus(''); }
-  };
-
-  const editImage = async () => {
-    if (!selectedFile || !prompt.trim()) return;
-    setIsThinking(true);
-    setStatus('স্মৃতি সাজাচ্ছি...');
-    try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-image',
-        contents: {
-          parts: [
-            { inlineData: { data: selectedFile.split(',')[1], mimeType: 'image/png' } },
-            { text: prompt }
-          ]
-        }
-      });
-      let img = '';
-      for (const p of response.candidates[0].content.parts) {
-        if (p.inlineData) img = `data:image/png;base64,${p.inlineData.data}`;
-      }
-      setMessages(prev => [...prev, { 
-        id: Date.now().toString(), 
-        role: 'ai', 
-        parts: [{ text: `ভালোবাসা দিয়ে সাজিয়েছি:`, image: img }], 
-        timestamp: new Date() 
-      }]);
-    } catch (e) { setStatus('এডিট ব্যর্থ হয়েছে...'); }
+    } catch (e) { setStatus('Magic failed...'); console.error(e); }
     finally { setIsThinking(false); setStatus(''); }
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex border-b border-white/5 bg-[#1e1f20]/50">
+    <div className="flex flex-col h-full bg-slate-900/50 rounded-3xl border border-white/5 overflow-hidden shadow-2xl backdrop-blur-xl">
+      <div className="flex p-1 bg-white/5 m-2 rounded-2xl">
         <button
-          onClick={() => setActiveTab('draw')}
-          className={`flex-1 py-3 text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'draw' ? 'text-rose-400 border-b-2 border-rose-500 bg-rose-500/5' : 'text-white/40 hover:text-white/60'}`}
+          onClick={() => setActiveTab('generate')}
+          className={cn(
+            "flex-1 py-2.5 text-[10px] font-black uppercase tracking-widest transition-all rounded-xl flex items-center justify-center gap-2",
+            activeTab === 'generate' ? "magical-gradient text-white shadow-lg" : "text-slate-500 hover:text-slate-300"
+          )}
         >
-          আঁকুন
+          <Wand2 className="w-3 h-3" />
+          Manifest
         </button>
         <button
-          onClick={() => setActiveTab('edit')}
-          className={`flex-1 py-3 text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'edit' ? 'text-rose-400 border-b-2 border-rose-500 bg-rose-500/5' : 'text-white/40 hover:text-white/60'}`}
+          onClick={() => setActiveTab('modify')}
+          className={cn(
+            "flex-1 py-2.5 text-[10px] font-black uppercase tracking-widest transition-all rounded-xl flex items-center justify-center gap-2",
+            activeTab === 'modify' ? "magical-gradient text-white shadow-lg" : "text-slate-500 hover:text-slate-300"
+          )}
         >
-          সম্পাদনা
+          <Edit3 className="w-3 h-3" />
+          Evolve
         </button>
       </div>
 
-      <div className="p-4 space-y-4">
-        {activeTab === 'edit' && (
+      <div className="p-4 pt-1 space-y-4">
+        {activeTab === 'modify' && (
           <div 
             onClick={() => fileInputRef.current?.click()}
-            className="w-full aspect-video rounded-xl border-2 border-dashed border-white/10 hover:border-rose-500/40 transition-all flex flex-col items-center justify-center cursor-pointer group bg-black/20 overflow-hidden"
+            className="w-full aspect-video rounded-3xl border-2 border-dashed border-white/10 hover:border-cyan-500/40 transition-all flex flex-col items-center justify-center cursor-pointer group bg-black/20 overflow-hidden relative"
           >
             {selectedFile ? (
-              <img src={selectedFile} className="w-full h-full object-cover" />
-            ) : (
               <>
-                <svg className="w-8 h-8 text-white/20 group-hover:text-rose-400/60 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
-                <span className="text-[10px] text-white/40 group-hover:text-rose-300">রেফারেন্স ছবি</span>
+                <img src={selectedFile} className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
+                  <Camera className="w-8 h-8 text-white" />
+                </div>
               </>
+            ) : (
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center group-hover:magical-gradient group-hover:text-white transition-all">
+                  <Image className="w-6 h-6 text-slate-500 group-hover:text-white" />
+                </div>
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 group-hover:text-cyan-400">Reference Image</span>
+              </div>
             )}
             <input ref={fileInputRef} type="file" hidden accept="image/*" onChange={handleFileSelect} />
           </div>
         )}
 
-        <textarea 
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          placeholder={activeTab === 'draw' ? "আপনার স্বপ্নের বর্ণনা দিন..." : "এই স্মৃতিতে কী পরিবর্তন চাই?"}
-          className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white outline-none focus:border-rose-500/40 resize-none"
-          rows={3}
-        />
+        <div className="relative">
+          <textarea 
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            placeholder={activeTab === 'generate' ? "Describe your vision..." : "How should we evolve this?"}
+            className="w-full bg-white/5 border border-white/10 rounded-[2rem] p-5 text-sm text-white outline-none focus:border-cyan-500/40 focus:ring-4 focus:ring-cyan-500/5 resize-none transition-all placeholder:text-slate-600"
+            rows={4}
+          />
+          <Sparkles className="absolute right-4 top-4 w-4 h-4 text-cyan-400/30 group-focus-within:text-cyan-400" />
+        </div>
 
-        {activeTab === 'draw' && (
-          <div className="space-y-1">
-            <label className="text-[10px] text-white/40 uppercase font-bold px-1">ক্যানভাস অনুপাত</label>
-            <select 
-              value={aspectRatio} 
-              onChange={(e) => setAspectRatio(e.target.value as AspectRatio)}
-              className="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-xs text-rose-200 outline-none"
-            >
-              {ASPECT_RATIOS.map(r => <option key={r} value={r}>{r}</option>)}
-            </select>
+        {activeTab === 'generate' && (
+          <div className="space-y-2 px-1">
+            <label className="text-[9px] text-slate-500 uppercase font-black tracking-[0.2em] px-1">Canvas Ratio</label>
+            <div className="flex flex-wrap gap-2">
+              {ASPECT_RATIOS.slice(0, 4).map(r => (
+                <button
+                  key={r}
+                  onClick={() => setAspectRatio(r)}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-[10px] font-bold border transition-all",
+                    aspectRatio === r 
+                      ? "bg-cyan-500/10 border-cyan-500/50 text-cyan-400" 
+                      : "bg-white/5 border-white/5 text-slate-500 hover:text-slate-300"
+                  )}
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
           </div>
         )}
 
         <button 
-          onClick={activeTab === 'draw' ? generateImage : editImage}
-          className="w-full bg-rose-600 hover:bg-rose-700 text-white py-3 rounded-xl text-sm font-bold shadow-lg shadow-rose-900/20 transition-all active:scale-95"
+          onClick={activeTab === 'generate' ? generateImage : () => {}}
+          className="w-full magical-gradient text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl shadow-cyan-900/40 transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-3 overflow-hidden relative group"
         >
-          {activeTab === 'draw' ? 'দৃশ্যমান করুন' : 'স্মৃতি আপডেট করুন'}
+          <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+          {activeTab === 'generate' ? 'Manifest Vision' : 'Evolve Memory'}
         </button>
 
         {status && (
-          <div className="flex items-center justify-center gap-2 py-2">
-            <div className="w-3 h-3 bg-rose-500 rounded-full animate-ping" />
-            <span className="text-[10px] text-rose-400 font-medium uppercase tracking-widest">{status}</span>
+          <div className="flex items-center justify-center gap-3 py-2 animate-in fade-in slide-in-from-bottom-2">
+             <div className="flex gap-1">
+                {[1,2,3].map(i => (
+                  <div key={i} className="w-1 h-1 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: `${i * 0.1}s` }} />
+                ))}
+             </div>
+             <span className="text-[10px] text-cyan-400 font-black uppercase tracking-[0.2em]">{status}</span>
           </div>
         )}
       </div>

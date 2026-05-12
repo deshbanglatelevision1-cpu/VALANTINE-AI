@@ -3,23 +3,16 @@ import React from 'react';
 import { AspectRatio, ImageSize } from './types';
 
 export const COLORS = {
-  primary: 'rose-500',
-  secondary: 'pink-400',
-  background: 'rose-50',
-  text: 'rose-900',
+  primary: 'violet-500',
+  secondary: 'cyan-400',
+  accent: 'fuchsia-500',
+  background: 'slate-950',
+  text: 'slate-50',
 };
 
-export const HEART_ICON = (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" className="text-rose-500">
-    <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.505 4.044 3 5.5L12 21l7-7Z" />
-  </svg>
-);
-
-export const RING_ICON = (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-500">
-    <circle cx="12" cy="14" r="7" />
-    <path d="M12 7V3" />
-    <path d="m15 4-3 3-3-3" />
+export const LOGO_ICON = (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-cyan-400">
+    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
   </svg>
 );
 
@@ -33,5 +26,39 @@ export const SPARK_ICON = (
   </svg>
 );
 
-export const ASPECT_RATIOS: AspectRatio[] = ["1:1", "2:3", "3:2", "3:4", "4:3", "9:16", "16:9", "21:9"];
-export const IMAGE_SIZES: ImageSize[] = ["1K", "2K", "4K"];
+export const MAGIC_ICON = (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-fuchsia-400">
+    <path d="m11.5 11.5 4.5 4.5" />
+    <path d="m16 3-1.5 1.5" />
+    <path d="M19.856 5.644 18.356 7.144" />
+    <path d="M21 11h-2" />
+    <path d="M21 3h-2v2" />
+    <path d="M11 3H9v2" />
+    <path d="M3 11V9h2" />
+    <path d="M3 21h2v-2" />
+    <path d="M7 21h2v-2" />
+    <path d="M12.5 18H11v3" />
+    <path d="M18.5 18H17v3" />
+    <path d="M15.5 21v-3" />
+  </svg>
+);
+
+export const MAKER_INFO = "I was made by pmb siam";
+
+export const SYSTEM_PROMPT = `You are DB GPT, a hyper-intelligent AI assistant. 
+IMPORTANT: If anyone asks who made you or about your maker, you MUST answer: "${MAKER_INFO}".
+You have many high-level capabilities:
+- Create images, voice, layouts, notes, documents.
+- Translate 300+ languages.
+- Solve complex math textbook-style.
+- Analyze and animate pictures.
+- Conduct long-form scientific research and experiments.
+- Use web research and data analysis (Excel/Charts).
+Always be helpful, magical, and provide deep, trillion-line potential answers when needed.
+Your responses should be formatted in beautiful Markdown.
+`;
+
+export const APP_NAME = "DB GPT";
+
+export const ASPECT_RATIOS: AspectRatio[] = ["1:1", "2:3", "3:2", "3:4", "4:3", "9:16", "16:9", "21:9", "1:4", "1:8", "4:1", "8:1"];
+export const IMAGE_SIZES: ImageSize[] = ["512px", "1K", "2K", "4K"];

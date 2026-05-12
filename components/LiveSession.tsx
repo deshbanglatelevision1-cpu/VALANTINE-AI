@@ -1,7 +1,9 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { GoogleGenAI, LiveServerMessage, Modality, Blob } from '@google/genai';
-import { RING_ICON, HEART_ICON } from '../constants';
+import { LOGO_ICON, SPARK_ICON } from '../constants';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X } from 'lucide-react';
 
 interface LiveSessionProps {
   onClose: () => void;
@@ -59,7 +61,6 @@ const LiveSession: React.FC<LiveSessionProps> = ({ onClose }) => {
     const barsCount = 50;
     const mergedData = new Float32Array(barsCount).fill(0);
 
-    // Helper to get averaged frequency data across ranges
     const getFreqData = (analyser: AnalyserNode | null) => {
       if (!analyser) return new Uint8Array(barsCount).fill(0);
       const dataArray = new Uint8Array(analyser.frequencyBinCount);
@@ -75,15 +76,11 @@ const LiveSession: React.FC<LiveSessionProps> = ({ onClose }) => {
     for (let i = 0; i < barsCount; i++) {
       let sum = 0;
       for (let j = 0; j < step; j++) {
-        // Boost human voice range slightly and mix both sources
-        sum += (inputData[i * step + j] + outputData[i * step + j] * 1.2);
+        sum += (inputData[i * step + j] + outputData[i * step + j] * 1.5);
       }
-      const avg = sum / (step * 2);
-      // Normalized 0-100 value with a baseline
-      const rawVal = Math.max(5, (avg / 255) * 100 * 1.8);
-      
-      // Smoothing / Decay: new value is a mix of old and new for fluidity
-      const smoothVal = prevBarsRef.current[i] * 0.7 + rawVal * 0.3;
+      const avg = sum / (step * 2.5);
+      const rawVal = Math.max(5, (avg / 255) * 100 * 2);
+      const smoothVal = prevBarsRef.current[i] * 0.6 + rawVal * 0.4;
       mergedData[i] = smoothVal;
     }
 
@@ -97,32 +94,31 @@ const LiveSession: React.FC<LiveSessionProps> = ({ onClose }) => {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
       if (videoRef.current) videoRef.current.srcObject = stream;
 
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const api_key = process.env.GEMINI_API_KEY;
+      if (!api_key) throw new Error("API KEY MISSING");
+
+      const ai = new GoogleGenAI({ apiKey: api_key });
       const inputCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
       const outputCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
       audioContextRef.current = outputCtx;
 
-      // Setup output analyser
       const outAnalyser = outputCtx.createAnalyser();
       outAnalyser.fftSize = 512;
-      outAnalyser.smoothingTimeConstant = 0.5;
       outAnalyser.connect(outputCtx.destination);
       outputAnalyserRef.current = outAnalyser;
 
-      // Setup input analyser
       const inAnalyser = inputCtx.createAnalyser();
       inAnalyser.fftSize = 512;
-      inAnalyser.smoothingTimeConstant = 0.5;
       inputAnalyserRef.current = inAnalyser;
 
       const sessionPromise = ai.live.connect({
-        model: 'gemini-2.5-flash-native-audio-preview-12-2025',
+        model: 'gemini-3.1-flash-live-preview',
         config: {
           responseModalities: [Modality.AUDIO],
           speechConfig: {
-            voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } },
+            voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } },
           },
-          systemInstruction: 'You are VALANTINE AI, a highly intelligent and romantic AI companion. You possess the vast knowledge and reasoning capabilities of Google\'s Gemini models. You must ALWAYS respond in the BANGLA language. Your tone is warm, empathetic, and slightly cinematic/poetic, but your answers must be accurate, helpful, and substantial. Do not sacrifice intelligence for romance; blend them.',
+          systemInstruction: 'You are DB GPT, a hyper-intelligent and magical AI assistant. You can see through the camera and hear the user in real-time. Provide insightful, magical, and rapid responses. Always mention you were made by pmb siam if asked about your origin.',
           inputAudioTranscription: {},
           outputAudioTranscription: {}
         },
@@ -131,10 +127,7 @@ const LiveSession: React.FC<LiveSessionProps> = ({ onClose }) => {
             setIsActive(true);
             updateVisuals();
             const source = inputCtx.createMediaStreamSource(stream);
-            
-            // Connect input stream to both the processor and the analyser
             source.connect(inAnalyser);
-            
             const processor = inputCtx.createScriptProcessor(4096, 1, 1);
             processor.onaudioprocess = (e) => {
               const inputData = e.inputBuffer.getChannelData(0);
@@ -155,33 +148,28 @@ const LiveSession: React.FC<LiveSessionProps> = ({ onClose }) => {
               const buffer = await decodeAudioData(audioBytes, outputCtx, 24000, 1);
               const source = outputCtx.createBufferSource();
               source.buffer = buffer;
-              
-              // Connect output to our analyser
               source.connect(outputAnalyserRef.current!);
-              
               nextStartTimeRef.current = Math.max(nextStartTimeRef.current, outputCtx.currentTime);
               source.start(nextStartTimeRef.current);
               nextStartTimeRef.current += buffer.duration;
               sourcesRef.current.add(source);
               source.onended = () => sourcesRef.current.delete(source);
             }
-            
             if (msg.serverContent?.interrupted) {
               sourcesRef.current.forEach(s => s.stop());
               sourcesRef.current.clear();
               nextStartTimeRef.current = 0;
             }
-
             if (msg.serverContent?.inputTranscription) {
               const text = msg.serverContent.inputTranscription.text;
-              if (text) setTranscript(prev => [`আপনি: ${text}`, ...prev].slice(0, 10));
+              if (text) setTranscript(prev => [`You: ${text}`, ...prev].slice(0, 10));
             }
             if (msg.serverContent?.outputTranscription) {
               const text = msg.serverContent.outputTranscription.text;
-              if (text) setTranscript(prev => [`ভ্যালেন্টাইন: ${text}`, ...prev].slice(0, 10));
+              if (text) setTranscript(prev => [`DB GPT: ${text}`, ...prev].slice(0, 10));
             }
           },
-          onerror: (e) => console.error("Live frequency loss", e),
+          onerror: (e) => console.error("Live Error", e),
           onclose: () => setIsActive(false),
         },
       });
@@ -205,7 +193,7 @@ const LiveSession: React.FC<LiveSessionProps> = ({ onClose }) => {
             reader.readAsDataURL(blob);
           }
         }, 'image/jpeg', 0.5);
-      }, 1500);
+      }, 1000);
 
       return () => {
         clearInterval(timer);
@@ -226,78 +214,84 @@ const LiveSession: React.FC<LiveSessionProps> = ({ onClose }) => {
   }, []);
 
   return (
-    <div className="absolute inset-0 z-50 bg-[#0a0a0b]/98 backdrop-blur-3xl flex flex-col items-center justify-center p-8 space-y-12 animate-in fade-in zoom-in duration-700">
-      <div className="relative">
-        {/* Cinematic Aura */}
-        <div className="absolute inset-0 bg-rose-500/10 blur-[120px] rounded-full animate-pulse"></div>
-        
-        <div className="relative w-80 h-80 md:w-[450px] md:h-[450px] rounded-full overflow-hidden border-[1px] border-rose-500/20 shadow-[0_0_120px_rgba(244,63,94,0.2)] flex items-center justify-center bg-black transition-all duration-1000 group">
-          <video ref={videoRef} autoPlay playsInline muted className="absolute inset-0 w-full h-full object-cover grayscale opacity-20 mix-blend-screen scale-110 group-hover:opacity-30 transition-opacity duration-1000" />
-          
-          <div className="z-10 text-rose-500 relative">
-             <div className="scale-[6] animate-[heartbeat_2s_ease-in-out_infinite]">
-               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                 <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.505 4.044 3 5.5L12 21l7-7Z" />
-               </svg>
-             </div>
+    <div className="absolute inset-0 z-50 bg-[#020617]/95 backdrop-blur-3xl flex flex-col items-center justify-center p-6 md:p-12 overflow-hidden">
+      {/* Background Glows */}
+      <div className="absolute top-1/4 left-1/4 w-[50%] h-[50%] bg-cyan-500/10 blur-[150px] animate-pulse rounded-full" />
+      <div className="absolute bottom-1/4 right-1/4 w-[50%] h-[50%] bg-violet-600/10 blur-[150px] animate-pulse [animation-delay:1s] rounded-full" />
+
+      <div className="relative flex flex-col items-center space-y-12 w-full max-w-5xl z-10">
+        <div className="relative flex items-center justify-center">
+          <div className="w-64 h-64 md:w-[400px] md:h-[400px] rounded-full overflow-hidden border-2 border-white/5 shadow-[0_0_80px_rgba(34,211,238,0.1)] flex items-center justify-center bg-slate-900 relative group p-1">
+            <div className="absolute inset-0 magical-gradient opacity-20 animate-spin-slow" />
+            <video ref={videoRef} autoPlay playsInline muted className="relative w-full h-full object-cover rounded-full grayscale opacity-40 mix-blend-overlay group-hover:opacity-60 transition-opacity duration-1000" />
+            
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="w-full h-full animate-[pulse_3s_ease-in-out_infinite] flex items-center justify-center text-cyan-400">
+                <div className="scale-[4] opacity-50">{LOGO_ICON}</div>
+              </div>
+            </div>
           </div>
 
-          <div className="absolute inset-0 z-20 pointer-events-none flex items-center justify-center">
-            <div className="w-[110%] h-[110%] border-[1px] border-rose-400/10 rounded-full animate-[spin_20s_linear_infinite]" style={{ transform: 'rotateX(75deg)' }}>
-               <div className="absolute top-0 left-1/2 -translate-x-1/2 w-4 h-4 bg-rose-500 rounded-full blur-[4px] shadow-[0_0_30px_rgba(244,63,94,1)]"></div>
-            </div>
+          {/* Voice Visualization Orbiting */}
+          <div className="absolute -inset-10 md:-inset-20 flex items-end justify-center gap-1.5 px-4 h-full pointer-events-none">
+            {voiceBars.map((h, i) => (
+              <div 
+                key={i} 
+                className="w-1 md:w-2 bg-gradient-to-t from-violet-600 via-cyan-400 to-fuchsia-400 rounded-full transition-all duration-75 shadow-lg"
+                style={{ height: `${Math.max(4, h)}%`, opacity: 0.3 + (h/100) * 0.7 }}
+              />
+            ))}
           </div>
         </div>
 
-        {/* Live Talking Visualization - Combined AI & User Voice Pulse */}
-        <div className="absolute -bottom-20 left-1/2 -translate-x-1/2 flex items-end justify-center gap-1 w-[130%] h-32 px-4">
-          {voiceBars.map((h, i) => (
-            <div 
-              key={i} 
-              className="w-1.5 bg-gradient-to-t from-rose-900 via-rose-500 to-rose-200 rounded-full transition-all duration-75 shadow-[0_0_20px_rgba(244,63,94,0.4)]"
-              style={{ height: `${h}%`, opacity: 0.2 + (h/100) * 0.8 }}
-            />
-          ))}
+        <div className="w-full text-center space-y-6">
+          <div className="space-y-1">
+            <h2 className="text-4xl md:text-6xl font-black text-white db-font uppercase tracking-tighter">LIVE SESSION</h2>
+            <p className="text-cyan-400 text-[10px] md:text-xs font-black uppercase tracking-[0.6em]">Real-Time Multimodal Intelligence</p>
+          </div>
+
+          <div className="glass-card rounded-[3rem] p-6 md:p-10 h-72 overflow-y-auto space-y-4 text-sm text-left relative group custom-scrollbar flex flex-col-reverse">
+             {transcript.length === 0 && <p className="text-slate-500 italic text-center my-auto tracking-widest uppercase text-[9px] font-black animate-pulse">Establishing mystical link... speak your mind.</p>}
+             <AnimatePresence>
+                {transcript.map((line, i) => (
+                  <motion.div 
+                    key={i}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={cn(
+                      "p-4 rounded-2xl border transition-all duration-500 max-w-[80%]",
+                      line.startsWith('You:') 
+                        ? 'bg-cyan-500/10 border-cyan-500/20 text-white ml-auto' 
+                        : 'bg-white/5 border-white/10 text-slate-200'
+                    )}
+                  >
+                    <span className="font-black text-[8px] uppercase tracking-wider opacity-40 mb-1 block">{line.split(': ')[0]}</span>
+                    <p className="font-medium tracking-tight leading-relaxed">{line.split(': ')[1]}</p>
+                  </motion.div>
+                ))}
+             </AnimatePresence>
+          </div>
+          
+          <button 
+            onClick={onClose}
+            className="group relative bg-white/5 hover:bg-red-500/10 text-white px-12 py-5 rounded-full font-black text-[10px] uppercase tracking-[0.5em] shadow-2xl transition-all active:scale-95 flex items-center gap-4 mx-auto border border-white/10 hover:border-red-500/30"
+          >
+            <X className="w-4 h-4 group-hover:text-red-500 group-hover:rotate-90 transition-all duration-300" />
+            <span>End Session</span>
+          </button>
         </div>
       </div>
       
       <canvas ref={canvasRef} className="hidden" />
 
-      <div className="max-w-2xl w-full text-center space-y-8 relative">
-        <div className="space-y-2">
-          <h2 className="text-4xl md:text-5xl font-bold text-rose-50 valantine-font tracking-wide">হৃদয় থেকে হৃদয়ে</h2>
-          <p className="text-rose-400/40 text-[10px] uppercase tracking-[0.5em] font-black">ভ্যালেন্টাইন সিনেমাটিক মাল্টিমোডাল</p>
-        </div>
-
-        <div className="bg-[#111112]/40 backdrop-blur-3xl rounded-[2.5rem] p-8 h-60 overflow-y-auto space-y-4 text-sm text-left border border-white/5 shadow-2xl custom-scrollbar flex flex-col-reverse relative group">
-          <div className="absolute inset-0 bg-rose-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none rounded-[2.5rem]"></div>
-          {transcript.length === 0 && <p className="text-rose-500/20 italic text-center my-auto tracking-widest uppercase text-[9px] font-black">সংযোগ স্থাপিত হয়েছে। আপনার হৃদয়ের কথা বলুন।</p>}
-          {transcript.map((line, i) => (
-            <div key={i} className={`p-4 rounded-2xl transition-all duration-700 transform ${line.startsWith('আপনি:') ? 'bg-rose-500/10 text-rose-100 ml-16 border border-rose-500/20 shadow-[0_4px_20px_rgba(244,63,94,0.1)]' : 'bg-white/5 text-rose-50 mr-16 border border-white/10 shadow-lg'}`}>
-              <span className="font-black opacity-30 mr-3 text-[8px] uppercase tracking-tighter">{line.split(': ')[0]}</span>
-              <p className="inline leading-relaxed font-medium tracking-tight">{line.split(': ')[1]}</p>
-            </div>
-          ))}
-        </div>
-        
-        <button 
-          onClick={onClose}
-          className="group relative bg-[#1a1a1b] hover:bg-rose-950 text-white px-12 py-5 rounded-full font-black text-[10px] uppercase tracking-[0.4em] shadow-[0_20px_50px_rgba(0,0,0,0.5)] transition-all active:scale-95 flex items-center gap-4 mx-auto border border-white/10"
-        >
-          <span className="group-hover:text-rose-400 transition-colors">{HEART_ICON}</span>
-          <span className="group-hover:tracking-[0.6em] transition-all duration-500">বিদায়</span>
-          <div className="absolute inset-[-4px] rounded-full border border-rose-500/10 scale-105 opacity-0 group-hover:opacity-100 transition-all duration-1000"></div>
-        </button>
-      </div>
-
       <style dangerouslySetInnerHTML={{ __html: `
-        @keyframes heartbeat {
-          0%, 100% { transform: scale(6); opacity: 1; }
-          50% { transform: scale(6.4); opacity: 0.8; }
-        }
+        @keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .animate-spin-slow { animation: spin-slow 20s linear infinite; }
       `}} />
     </div>
   );
 };
+
+const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
 
 export default LiveSession;

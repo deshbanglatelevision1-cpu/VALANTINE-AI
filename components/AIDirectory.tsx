@@ -39,46 +39,47 @@ const AIDirectory: React.FC<AIDirectoryProps> = ({ isOpen, onClose, onSelect }) 
       <div className="w-full max-w-6xl h-full max-h-[90vh] bg-[#131314] border border-rose-500/20 rounded-3xl overflow-hidden flex flex-col shadow-2xl relative">
         
         {/* Header */}
-        <div className="p-6 border-b border-rose-500/10 flex items-center justify-between bg-[#1e1f20]">
+        <div className="p-6 border-b border-white/5 flex items-center justify-between bg-slate-900/50">
           <div>
-            <h2 className="text-3xl font-bold text-rose-400 valantine-font">AI মহাবিশ্ব (AI Universe)</h2>
-            <p className="text-xs text-rose-200/50 uppercase tracking-widest mt-1">আপনার পছন্দের টুল বেছে নিন</p>
+            <h2 className="text-3xl font-black text-white db-font tracking-tighter uppercase">AI UNIVERSE</h2>
+            <p className="text-[10px] text-cyan-400 font-bold uppercase tracking-[0.3em] mt-1">Select your magical persona</p>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-rose-500/20 rounded-full text-rose-400 transition-colors">
+          <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-xl text-slate-400 hover:text-white transition-all">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
         </div>
 
         {/* Search */}
-        <div className="p-4 bg-[#131314]/50 border-b border-white/5">
+        <div className="p-4 bg-slate-950/50 border-b border-white/5">
           <div className="relative max-w-md mx-auto">
             <input 
               type="text" 
-              placeholder="টুল খুঁজুন (যেমন: ChatGPT, Midjourney)..." 
+              placeholder="Search tools (ChatGPT, Midjourney)..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-[#1e1f20] border border-rose-500/20 rounded-full py-3 px-10 text-rose-100 placeholder-rose-100/30 focus:border-rose-500 focus:outline-none transition-all"
+              className="w-full bg-slate-900 border border-white/10 rounded-2xl py-3 px-10 text-white placeholder-slate-500 focus:border-cyan-500/50 focus:outline-none transition-all focus:ring-4 focus:ring-cyan-500/10"
             />
-            <svg className="absolute left-3 top-3.5 w-5 h-5 text-rose-500/50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+            <svg className="absolute left-3 top-3.5 w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
           </div>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="flex-1 overflow-y-auto p-6 md:p-10 custom-scrollbar bg-slate-950/20">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {Object.entries(AI_TOOLS).map(([category, tools]) => {
               const filteredTools = tools.filter(t => t.toLowerCase().includes(searchTerm.toLowerCase()));
               if (filteredTools.length === 0) return null;
 
               return (
-                <div key={category} className="bg-[#1e1f20]/50 rounded-2xl border border-white/5 p-4 hover:border-rose-500/30 transition-all group">
-                  <h3 className="text-sm font-black text-rose-500 uppercase tracking-widest mb-3 border-b border-white/5 pb-2">{category}</h3>
-                  <div className="flex flex-wrap gap-2">
+                <div key={category} className="glass-card rounded-3xl p-6 hover:border-cyan-500/30 transition-all group relative overflow-hidden">
+                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-violet-500 via-cyan-400 to-fuchsia-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <h3 className="text-xs font-black text-slate-400 group-hover:text-cyan-400 uppercase tracking-widest mb-5 transition-colors">{category}</h3>
+                  <div className="flex flex-wrap gap-2.5">
                     {filteredTools.map(tool => (
                       <button
                         key={tool}
                         onClick={() => onSelect(tool, category)}
-                        className="px-3 py-1.5 bg-[#131314] hover:bg-rose-600 text-rose-100/80 hover:text-white rounded-lg text-xs font-medium transition-all shadow-lg border border-white/5 hover:border-rose-400 hover:scale-105 active:scale-95"
+                        className="px-4 py-2 bg-white/5 hover:magical-gradient text-slate-300 hover:text-white rounded-xl text-xs font-bold transition-all border border-white/5 hover:border-transparent hover:scale-105 active:scale-95 shadow-lg"
                       >
                         {tool}
                       </button>

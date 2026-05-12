@@ -30,8 +30,8 @@ export enum AppMode {
   LIVE = 'LIVE'
 }
 
-export type AspectRatio = "1:1" | "2:3" | "3:2" | "3:4" | "4:3" | "9:16" | "16:9" | "21:9";
-export type ImageSize = "1K" | "2K" | "4K";
+export type AspectRatio = "1:1" | "2:3" | "3:2" | "3:4" | "4:3" | "9:16" | "16:9" | "21:9" | "1:4" | "1:8" | "4:1" | "8:1";
+export type ImageSize = "512px" | "1K" | "2K" | "4K";
 
 export interface ImageGenConfig {
   aspectRatio: AspectRatio;
