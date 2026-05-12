@@ -109,6 +109,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [attachments, setAttachments] = useState<{ type: string; url: string; name: string }[]>([]);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [isTTSEnabled, setIsTTSEnabled] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -222,6 +223,27 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }
     setIsCameraOpen(false);
   };
+
+  const speakText = (text: string) => {
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    // Find a better voice if possible
+    const voices = window.speechSynthesis.getVoices();
+    const premiumVoice = voices.find(v => v.name.includes('Google') || v.name.includes('Premium'));
+    if (premiumVoice) utterance.voice = premiumVoice;
+    
+    window.speechSynthesis.speak(utterance);
+  };
+
+  useEffect(() => {
+    if (isTTSEnabled && messages.length > 0) {
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage.role === 'ai' && !isThinking) {
+        const textToSpeak = lastMessage.parts.map(p => p.text || "").join(" ").replace(/[*#`]/g, '');
+        speakText(textToSpeak);
+      }
+    }
+  }, [messages, isTTSEnabled, isThinking]);
 
   const captureImage = () => {
     if (videoRef.current) {
@@ -404,9 +426,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 </button>
 
                 <button 
+                  onClick={() => speakText(msg.parts.map(p => p.text || "").join(" ").replace(/[*#`]/g, ''))}
                   className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white/5 hover:bg-white/10 rounded-xl text-slate-500 hover:text-fuchsia-400 border border-transparent hover:border-white/10 transition-all text-[9px] font-black uppercase tracking-widest shadow-sm"
                 >
-                  <Volume2 className="w-3 h-3" />
+                  <Volume2 className={cn("w-3 h-3", isTTSEnabled && msg.role === 'ai' && "animate-pulse")} />
                   <span>Listen</span>
                 </button>
 
@@ -603,6 +626,19 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 >
                   <Clipboard className="w-5 h-5" />
                 </button>
+                <button 
+                  onClick={() => {
+                    setIsTTSEnabled(!isTTSEnabled);
+                    if (isTTSEnabled) window.speechSynthesis.cancel();
+                  }}
+                  className={cn(
+                    "p-3 rounded-2xl transition-all",
+                    isTTSEnabled ? "text-fuchsia-400 bg-fuchsia-500/10" : "text-slate-400 hover:text-fuchsia-400 hover:bg-white/5"
+                  )}
+                  title={isTTSEnabled ? "Disable Auto Speech" : "Enable Auto Speech"}
+                >
+                  <Volume2 className="w-5 h-5" />
+                </button>
                 <button className="p-3 text-slate-400 hover:text-violet-400 hover:bg-white/5 rounded-2xl transition-all">
                   <Mic className="w-5 h-5" />
                 </button>
@@ -647,8 +683,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         .markdown-body th, .markdown-body td { border: 1px solid rgba(255,255,255,0.1); padding: 8px 12px; }
         .markdown-body th { background: rgba(255,255,255,0.05); }
       `}} />
-    </div>
-  );
+  </div>
+);
 };
 
 export default ChatInterface;
