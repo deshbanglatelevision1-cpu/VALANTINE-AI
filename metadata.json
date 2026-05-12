@@ -1,0 +1,9 @@
+{
+  "name": "VALANTINE AI",
+  "description": "A love-themed AI assistant powered by Gemini 2.5 and 3.0 models. Features text-to-image, video generation with Veo, real-time voice conversations via Live API, and grounded search/maps capabilities.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ]
+}
