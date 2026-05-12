@@ -294,7 +294,7 @@ const App: React.FC = () => {
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col relative z-10 overflow-hidden">
         {/* Top Navbar */}
-        <header className="h-16 flex items-center justify-between px-6 bg-slate-950/50 backdrop-blur-md border-b border-white/5">
+        <header className="h-16 flex-shrink-0 flex items-center justify-between px-6 bg-slate-950/50 backdrop-blur-md border-b border-white/5">
           <div className="flex items-center gap-4">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -383,7 +383,7 @@ const App: React.FC = () => {
         </header>
 
         {/* Chat / Live Interface */}
-        <div className="flex-1 relative flex flex-col items-center justify-center w-full max-w-5xl mx-auto">
+        <div className="flex-1 overflow-hidden w-full max-w-5xl mx-auto flex flex-col">
           {mode === AppMode.LIVE ? (
             <LiveSession onClose={() => setMode(AppMode.CHAT)} />
           ) : (

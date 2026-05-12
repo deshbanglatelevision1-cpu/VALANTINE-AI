@@ -142,17 +142,40 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
     setMessages(prev => [...prev, userMessage]);
     setInput("");
+    const currentAttachments = [...attachments];
     setAttachments([]);
     setIsThinking(true);
 
     try {
       const ai = getAI();
+      const modelId = isThinkingModeEnabled ? "gemini-3.1-pro-preview" : "gemini-3-flash-preview";
+      
+      const contents = messages.map(m => ({
+        role: m.role === 'ai' ? 'model' : 'user',
+        parts: m.parts.map(p => {
+          if (p.text) return { text: p.text };
+          if (p.image) {
+            const base64Data = p.image.split(',')[1];
+            return { inlineData: { data: base64Data, mimeType: "image/jpeg" } };
+          }
+          return { text: "" };
+        })
+      }));
+
+      // Add current message parts
+      const currentParts = [{ text: input }];
+      currentAttachments.forEach(a => {
+        if (a.type === 'image') {
+          const base64Data = a.url.split(',')[1];
+          currentParts.push({ inlineData: { data: base64Data, mimeType: "image/jpeg" } } as any);
+        }
+      });
+
+      contents.push({ role: 'user', parts: currentParts });
+
       const model = ai.models.generateContent({
-        model: isThinkingModeEnabled ? "gemini-3.1-pro-preview" : "gemini-3-flash-preview",
-        contents: messages.map(m => ({
-          role: m.role === 'ai' ? 'model' : 'user',
-          parts: m.parts.map(p => ({ text: p.text || "" }))
-        })).concat([{ role: 'user', parts: [{ text: input }] }]),
+        model: modelId,
+        contents,
         config: {
           systemInstruction: SYSTEM_PROMPT,
         }
@@ -227,11 +250,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full w-full relative">
-      {/* Message List */}
+    <div className="flex flex-col h-full w-full relative overflow-hidden bg-transparent min-h-0">
+      {/* Scrollable Message Area */}
       <div 
         ref={scrollRef}
-        className="flex-1 overflow-y-auto px-4 py-8 space-y-6 scroll-smooth custom-scrollbar"
+        className="flex-1 overflow-y-auto px-4 py-8 space-y-8 scroll-smooth custom-scrollbar min-h-0"
       >
         <AnimatePresence>
           {messages.length === 0 && (
@@ -470,9 +493,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         </AnimatePresence>
       </div>
 
-      {/* Input Area */}
-      <div className="p-4 md:p-6 w-full max-w-4xl mx-auto">
-        <div className="relative group">
+      {/* Fixed Layout Input Area */}
+      <div className="w-full shrink-0">
+        <div className="p-4 md:p-6 w-full max-w-4xl mx-auto">
+          <div className="relative group">
           {/* Camera Preview */}
           <AnimatePresence>
             {isCameraOpen && (
@@ -611,8 +635,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           </div>
         </div>
       </div>
+    </div>
 
-      <style dangerouslySetInnerHTML={{
+    <style dangerouslySetInnerHTML={{
         __html: `
         .markdown-body { font-size: 14px; line-height: 1.6; }
         .markdown-body pre { background: rgba(0,0,0,0.3) !important; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 16px; margin: 12px 0; position: relative; }
