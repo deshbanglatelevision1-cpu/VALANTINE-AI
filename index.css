@@ -10,16 +10,29 @@
 
 @layer components {
   .magical-gradient {
-    @apply bg-gradient-to-br from-violet-600 via-fuchsia-500 to-cyan-400;
+    @apply bg-gradient-to-br from-indigo-500 via-fuchsia-500 to-cyan-400;
   }
   
   .magical-glow {
-    @apply shadow-[0_0_20px_rgba(168,85,247,0.4)];
+    @apply shadow-[0_0_40px_rgba(139,92,246,0.3)];
   }
 
   .glass-card {
-    @apply bg-white/5 backdrop-blur-xl border border-white/10;
+    @apply bg-slate-900/40 backdrop-blur-3xl border border-white/10 shadow-2xl;
   }
+
+  .db-button-glow {
+    @apply relative overflow-hidden transition-all duration-300 hover:scale-105 active:scale-95 before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-white/20 before:to-transparent before:-translate-x-full hover:before:translate-x-full before:transition-transform before:duration-700;
+  }
+}
+
+.rainbow-mesh {
+  background-color: #020617;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(168, 85, 247, 0.15) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(34, 211, 238, 0.15) 0px, transparent 50%),
+    radial-gradient(at 0% 100%, rgba(236, 72, 153, 0.15) 0px, transparent 50%);
 }
 
 @keyframes float {
@@ -27,8 +40,18 @@
   50% { transform: translateY(-10px); }
 }
 
-.animate-float {
-  animation: float 3s ease-in-out infinite;
+@keyframes shimmer {
+  0% { transform: translateX(-100%) skewX(-15deg); }
+  100% { transform: translateX(200%) skewX(-15deg); }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.3; filter: blur(15px); }
+  50% { opacity: 0.6; filter: blur(25px); }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s linear infinite;
 }
 
 @keyframes pulse-glow {

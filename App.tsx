@@ -128,10 +128,10 @@ const App: React.FC = () => {
   const bgGradient = "bg-[#020617]";
 
   return (
-    <div className={`flex h-screen w-full ${bgGradient} text-slate-50 overflow-hidden relative font-sans`}>
+    <div className={`flex h-screen w-full rainbow-mesh text-slate-50 overflow-hidden relative font-sans`}>
       {/* Background with magical glows */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-violet-600/20 blur-[120px] rounded-full pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-cyan-600/20 blur-[120px] rounded-full pointer-events-none" />
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-violet-600/10 blur-[120px] rounded-full pointer-events-none animate-pulse" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-cyan-600/10 blur-[120px] rounded-full pointer-events-none animate-pulse [animation-delay:2s]" />
       
       <AIDirectory 
         isOpen={isDirectoryOpen} 
@@ -268,6 +268,12 @@ const App: React.FC = () => {
                 </div>
               )}
             </div>
+            
+            <nav className="hidden md:flex items-center gap-1 ml-6 p-1 bg-white/5 rounded-xl border border-white/10">
+              <button className="px-4 py-2 bg-white/10 text-white rounded-lg text-[10px] font-black uppercase tracking-widest shadow-lg">Chat</button>
+              <button className="px-4 py-2 text-slate-400 hover:text-white rounded-lg text-[10px] font-black uppercase tracking-widest transition-colors">Notebook</button>
+              <button className="px-4 py-2 text-slate-400 hover:text-white rounded-lg text-[10px] font-black uppercase tracking-widest transition-colors">Research</button>
+            </nav>
           </div>
 
           <div className="flex items-center gap-4">

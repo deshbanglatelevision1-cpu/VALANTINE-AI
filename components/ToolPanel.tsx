@@ -142,9 +142,10 @@ const ToolPanel: React.FC<ToolPanelProps> = ({ setMessages, setIsThinking }) => 
 
         <button 
           onClick={activeTab === 'generate' ? generateImage : () => {}}
-          className="w-full magical-gradient text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl shadow-cyan-900/40 transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-3 overflow-hidden relative group"
+          className="w-full magical-gradient text-white py-5 rounded-2xl text-[11px] font-black uppercase tracking-[0.3em] shadow-xl shadow-indigo-900/40 transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-3 overflow-hidden relative group db-button-glow border border-white/20"
         >
-          <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+          <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+          <Sparkles className="w-4 h-4 animate-pulse" />
           {activeTab === 'generate' ? 'Manifest Vision' : 'Evolve Memory'}
         </button>
 

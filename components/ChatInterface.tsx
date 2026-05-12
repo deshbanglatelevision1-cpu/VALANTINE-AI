@@ -12,9 +12,77 @@ import {
   Send, Paperclip, Mic, Camera, StopCircle, 
   Copy, RotateCcw, Share2, Volume2, Languages, 
   MoreVertical, Edit, Scissors, Clipboard, 
-  Eye, Download, Sparkles, Trash2, X, Maximize2
+  Eye, Download, Sparkles, Trash2, X, Maximize2,
+  Code, Play, Check, ChevronRight, Brain
 } from 'lucide-react';
 import { cn } from '../lib/utils';
+
+// Code Block Component with Preview
+const CodeBlock = ({ language, value }: { language: string, value: string }) => {
+  const [copied, setCopied] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(value);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const isPreviewable = ['html', 'css', 'javascript', 'typescript', 'react'].includes(language?.toLowerCase() || "");
+
+  return (
+    <div className="my-4 rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-[#0f172a]">
+      <div className="flex items-center justify-between px-4 py-2 bg-white/5 border-b border-white/5">
+        <div className="flex items-center gap-2">
+          <div className="flex gap-1.5 grayscale opacity-50">
+            <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
+            <div className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
+            <div className="w-2.5 h-2.5 rounded-full bg-green-400" />
+          </div>
+          <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-2">{language || 'code'}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          {isPreviewable && (
+            <button 
+              onClick={() => setShowPreview(!showPreview)}
+              className={cn(
+                "flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all",
+                showPreview ? "bg-cyan-500/20 text-cyan-400" : "hover:bg-white/5 text-slate-400"
+              )}
+            >
+              {showPreview ? <Code className="w-3 h-3" /> : <Play className="w-3 h-3" />}
+              {showPreview ? "Show Code" : "Preview"}
+            </button>
+          )}
+          <button 
+            onClick={handleCopy}
+            className="flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-white/5 text-slate-400 transition-all text-[10px] font-black uppercase tracking-widest"
+          >
+            {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+            {copied ? "Copied" : "Copy"}
+          </button>
+        </div>
+      </div>
+      
+      {showPreview ? (
+        <div className="p-4 bg-white/5 min-h-[100px]">
+          {/* Simple HTML Preview Iframe Simulation */}
+          <div className="p-4 bg-white rounded-lg text-slate-900 overflow-auto max-h-[300px]">
+            {language === 'html' ? (
+               <div dangerouslySetInnerHTML={{ __html: value }} />
+            ) : (
+              <pre className="text-xs">{value}</pre>
+            )}
+          </div>
+        </div>
+      ) : (
+        <pre className="p-4 overflow-x-auto custom-scrollbar text-xs font-mono text-cyan-300 selection:bg-cyan-500/30">
+          <code>{value}</code>
+        </pre>
+      )}
+    </div>
+  );
+};
 
 interface ChatInterfaceProps {
   messages: ChatMessage[];
@@ -187,33 +255,75 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           {messages.map((msg, idx) => (
             <motion.div
               key={msg.id}
-              initial={{ opacity: 0, x: msg.role === 'user' ? 20 : -20 }}
-              animate={{ opacity: 1, x: 0 }}
+              initial={{ opacity: 0, x: msg.role === 'user' ? 20 : -20, scale: 0.95 }}
+              animate={{ 
+                opacity: 1, 
+                x: 0, 
+                scale: 1,
+                boxShadow: msg.role === 'ai' ? [
+                  "0 0 0px rgba(139, 92, 246, 0)",
+                  "0 0 20px rgba(139, 92, 246, 0.3)",
+                  "0 0 0px rgba(139, 92, 246, 0)"
+                ] : "none"
+              }}
+              transition={{ 
+                duration: 0.5,
+                boxShadow: {
+                  duration: 2,
+                  repeat: msg.role === 'ai' ? 1 : 0,
+                  repeatType: "reverse"
+                }
+              }}
               className={cn(
-                "flex flex-col max-w-[85%] space-y-2 group",
+                "flex flex-col max-w-[85%] space-y-2 group relative",
                 msg.role === 'user' ? "ml-auto items-end" : "mr-auto items-start"
               )}
             >
+              {msg.role === 'ai' && (
+                <div className="absolute -inset-1 bg-gradient-to-r from-violet-500/20 via-cyan-400/20 to-fuchsia-500/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+              )}
+              
               <div className={cn(
-                "px-5 py-3 rounded-2xl shadow-xl transition-all duration-300 relative",
+                "px-5 py-3 rounded-2xl shadow-xl transition-all duration-300 relative overflow-hidden",
                 msg.role === 'user' 
                   ? "magical-gradient text-white rounded-tr-none hover:shadow-cyan-500/20" 
                   : "glass-card text-slate-200 rounded-tl-none hover:bg-white/10"
               )}>
+                {msg.role === 'ai' && (
+                  <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                    <div className="absolute top-0 left-0 w-1/2 h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full animate-[shimmer_2.5s_infinite]" />
+                  </div>
+                )}
                 {msg.parts.map((part, pIdx) => (
                   <div key={pIdx}>
                     {part.text && (
-                      <div className="markdown-body prose prose-invert prose-slate">
+                      <div className="markdown-body prose prose-invert prose-slate max-w-none">
                         <ReactMarkdown 
                           remarkPlugins={[remarkMath]} 
                           rehypePlugins={[rehypeKatex]}
+                          components={{
+                            code({ node, inline, className, children, ...props }: any) {
+                              const match = /language-(\w+)/.exec(className || '');
+                              return !inline && match ? (
+                                <CodeBlock 
+                                  language={match[1]} 
+                                  value={String(children).replace(/\n$/, '')} 
+                                />
+                              ) : (
+                                <code className={className} {...props}>
+                                  {children}
+                                </code>
+                              );
+                            }
+                          }}
                         >
                           {part.text}
                         </ReactMarkdown>
                       </div>
                     )}
-                    {part.image && <img src={part.image} className="max-w-full rounded-lg mt-2 shadow-lg" alt="attachment" />}
-                    {part.video && <video src={part.video} controls className="max-w-full rounded-lg mt-2 shadow-lg" />}
+                    {part.image && <img src={part.image} className="max-w-full rounded-2xl mt-2 shadow-2xl border border-white/10" alt="attachment" />}
+                    {part.video && <video src={part.video} controls className="max-w-full rounded-2xl mt-2 shadow-2xl border border-white/10" />}
+                    {part.audio && <audio src={part.audio} controls className="w-full mt-2 opacity-80" />}
                     {part.text && msg.role === 'user' && idx > 0 && part.text.startsWith('http') && (
                       <div className="mt-2 p-2 bg-white/5 border border-white/10 rounded-xl flex items-center gap-2 overflow-hidden">
                         <Share2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
@@ -226,22 +336,115 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
               {/* Action Buttons Under Message */}
               <div className={cn(
-                "flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-all duration-300",
+                "flex flex-wrap items-center gap-1 opacity-0 group-hover:opacity-100 transition-all duration-500 py-1",
                 msg.role === 'user' ? "flex-row-reverse" : "flex-row"
               )}>
-                <button onClick={() => navigator.clipboard.writeText(msg.parts[0].text || "")} className="p-1.5 hover:bg-white/10 rounded-lg text-slate-500 hover:text-cyan-400 transition-colors" title="Copy"><Copy className="w-3.5 h-3.5" /></button>
-                <button className="p-1.5 hover:bg-white/10 rounded-lg text-slate-500 hover:text-violet-400 transition-colors" title="Share"><Share2 className="w-3.5 h-3.5" /></button>
-                <button className="p-1.5 hover:bg-white/10 rounded-lg text-slate-500 hover:text-fuchsia-400 transition-colors" title="Listen"><Volume2 className="w-3.5 h-3.5" /></button>
+                {/* Standard Actions */}
+                <button 
+                  onClick={() => {
+                    navigator.clipboard.writeText(msg.parts[0].text || "");
+                    alert("Manifested to clipboard!");
+                  }} 
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white/5 hover:bg-white/10 rounded-xl text-slate-500 hover:text-cyan-400 border border-transparent hover:border-white/10 transition-all text-[9px] font-black uppercase tracking-widest shadow-sm"
+                >
+                  <Copy className="w-3 h-3" />
+                  <span>Copy</span>
+                </button>
+
+                <button 
+                  onClick={async () => {
+                    try {
+                      const text = await navigator.clipboard.readText();
+                      alert("Pasted from memory: " + text.substring(0, 20) + "...");
+                    } catch (err) {
+                      console.error('Failed to read clipboard');
+                    }
+                  }}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white/5 hover:bg-white/10 rounded-xl text-slate-500 hover:text-cyan-400 border border-transparent hover:border-white/10 transition-all text-[9px] font-black uppercase tracking-widest shadow-sm"
+                >
+                  <Clipboard className="w-3 h-3" />
+                  <span>Paste</span>
+                </button>
+
+                <button 
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white/5 hover:bg-white/10 rounded-xl text-slate-500 hover:text-indigo-400 border border-transparent hover:border-white/10 transition-all text-[9px] font-black uppercase tracking-widest shadow-sm"
+                >
+                  <Brain className="w-3 h-3" />
+                  <span>Reason</span>
+                </button>
+
+                <button 
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white/5 hover:bg-white/10 rounded-xl text-slate-500 hover:text-violet-400 border border-transparent hover:border-white/10 transition-all text-[9px] font-black uppercase tracking-widest shadow-sm"
+                >
+                  <Share2 className="w-3 h-3" />
+                  <span>Share</span>
+                </button>
+
+                <button 
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white/5 hover:bg-white/10 rounded-xl text-slate-500 hover:text-fuchsia-400 border border-transparent hover:border-white/10 transition-all text-[9px] font-black uppercase tracking-widest shadow-sm"
+                >
+                  <Volume2 className="w-3 h-3" />
+                  <span>Listen</span>
+                </button>
+
                 {msg.role === 'ai' && (
                   <>
-                    <button className="p-1.5 hover:bg-white/10 rounded-lg text-slate-500 hover:text-orange-400 transition-colors" title="Regenerate"><RotateCcw className="w-3.5 h-3.5" /></button>
-                    <button className="p-1.5 hover:bg-white/10 rounded-lg text-slate-500 hover:text-emerald-400 transition-colors" title="Translate"><Languages className="w-3.5 h-3.5" /></button>
+                    <button 
+                      onClick={() => {
+                        const lang = prompt("Translate to which language?");
+                        if (lang) {
+                          setInput(`Translate the message above to ${lang}: "${msg.parts[0].text?.substring(0, 100)}..."`);
+                          // User can then click send
+                        }
+                      }}
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white/5 hover:bg-white/10 rounded-xl text-slate-500 hover:text-emerald-400 border border-transparent hover:border-white/10 transition-all text-[9px] font-black uppercase tracking-widest shadow-sm"
+                    >
+                      <Languages className="w-3 h-3" />
+                      <span>Translate</span>
+                    </button>
+                    <button 
+                      onClick={() => {
+                        // Resend last user message
+                        const lastUserMsg = [...messages].reverse().find(m => m.role === 'user');
+                        if (lastUserMsg) {
+                          setInput(lastUserMsg.parts[0].text || "");
+                          handleSend();
+                        }
+                      }}
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white/5 hover:bg-white/10 rounded-xl text-slate-500 hover:text-orange-400 border border-transparent hover:border-white/10 transition-all text-[9px] font-black uppercase tracking-widest shadow-sm"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                      <span>Retry</span>
+                    </button>
+                    <button 
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white/5 hover:bg-white/10 rounded-xl text-slate-500 hover:text-indigo-400 border border-transparent hover:border-white/10 transition-all text-[9px] font-black uppercase tracking-widest shadow-sm"
+                    >
+                      <Brain className="w-3 h-3" />
+                      <span>Logic</span>
+                    </button>
                   </>
                 )}
+
                 {msg.role === 'user' && (
                   <>
-                    <button className="p-1.5 hover:bg-white/10 rounded-lg text-slate-500 hover:text-blue-400 transition-colors" title="Edit"><Edit className="w-3.5 h-3.5" /></button>
-                    <button className="p-1.5 hover:bg-white/10 rounded-lg text-slate-500 hover:text-red-400 transition-colors" title="Delete"><Trash2 className="w-3.5 h-3.5" /></button>
+                    <button 
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white/5 hover:bg-white/10 rounded-xl text-slate-500 hover:text-blue-400 border border-transparent hover:border-white/10 transition-all text-[9px] font-black uppercase tracking-widest shadow-sm"
+                    >
+                      <Edit className="w-3 h-3" />
+                      <span>Edit</span>
+                    </button>
+                    <button 
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white/5 hover:bg-white/10 rounded-xl text-slate-500 hover:text-yellow-400 border border-transparent hover:border-white/10 transition-all text-[9px] font-black uppercase tracking-widest shadow-sm"
+                    >
+                      <Scissors className="w-3 h-3" />
+                      <span>Cut</span>
+                    </button>
+                    <button 
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white/5 hover:bg-white/10 rounded-xl text-slate-500 hover:text-red-400 border border-transparent hover:border-white/10 transition-all text-[9px] font-black uppercase tracking-widest shadow-sm"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                      <span>Delete</span>
+                    </button>
                   </>
                 )}
               </div>
@@ -362,6 +565,20 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               />
 
               <div className="flex items-center gap-2">
+                <button 
+                  onClick={async () => {
+                    try {
+                      const text = await navigator.clipboard.readText();
+                      setInput(prev => prev + text);
+                    } catch (err) {
+                      console.error('Failed to read clipboard');
+                    }
+                  }}
+                  className="p-3 text-slate-400 hover:text-cyan-400 hover:bg-white/5 rounded-2xl transition-all"
+                  title="Paste"
+                >
+                  <Clipboard className="w-5 h-5" />
+                </button>
                 <button className="p-3 text-slate-400 hover:text-violet-400 hover:bg-white/5 rounded-2xl transition-all">
                   <Mic className="w-5 h-5" />
                 </button>
