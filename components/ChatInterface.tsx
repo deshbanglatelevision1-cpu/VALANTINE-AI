@@ -106,7 +106,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   onResetKey
 }) => {
   const [input, setInput] = useState("");
-  const [attachments, setAttachments] = useState<{ type: string; url: string; name: string }[]>([]);
+  const [attachments, setAttachments] = useState<{ type: string; url: string; name: string; caption?: string; isCaptioning?: boolean }[]>([]);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isTTSEnabled, setIsTTSEnabled] = useState(false);
@@ -257,6 +257,38 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }
   }, [messages, isTTSEnabled, isThinking]);
 
+  const generateCaption = async (imageUrl: string, index: number) => {
+    try {
+      const ai = getAI();
+      const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const base64Data = imageUrl.split(',')[1];
+      const mimeType = imageUrl.split(';')[0].split(':')[1] || "image/jpeg";
+      
+      const result = await model.generateContent([
+        "Describe this image in a single short, descriptive sentence for a caption. Start directly with the description.",
+        { inlineData: { data: base64Data, mimeType } }
+      ]);
+      
+      const caption = result.response.text().trim();
+      setAttachments(prev => {
+        const next = [...prev];
+        if (next[index]) {
+          next[index] = { ...next[index], caption, isCaptioning: false };
+        }
+        return next;
+      });
+    } catch (error) {
+      console.error("Caption generation error:", error);
+      setAttachments(prev => {
+        const next = [...prev];
+        if (next[index]) {
+          next[index] = { ...next[index], isCaptioning: false };
+        }
+        return next;
+      });
+    }
+  };
+
   const captureImage = () => {
     if (videoRef.current) {
       const canvas = document.createElement('canvas');
@@ -265,7 +297,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       const ctx = canvas.getContext('2d');
       ctx?.drawImage(videoRef.current, 0, 0);
       const url = canvas.toDataURL('image/jpeg');
-      setAttachments(prev => [...prev, { type: 'image', url, name: `capture_${Date.now()}.jpg` }]);
+      const index = attachments.length;
+      setAttachments(prev => [...prev, { type: 'image', url, name: `capture_${Date.now()}.jpg`, isCaptioning: true }]);
+      generateCaption(url, index);
       stopCamera();
     }
   };
@@ -273,11 +307,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
-    Array.from(files).forEach(file => {
+    Array.from(files).forEach((file, i) => {
       const reader = new FileReader();
       reader.onload = (ev) => {
         const type = file.type.startsWith('image') ? 'image' : file.type.startsWith('video') ? 'video' : 'audio';
-        setAttachments(prev => [...prev, { type, url: ev.target?.result as string, name: file.name }]);
+        const url = ev.target?.result as string;
+        const index = attachments.length + i;
+        setAttachments(prev => [...prev, { type, url, name: file.name, isCaptioning: type === 'image' }]);
+        if (type === 'image') {
+          generateCaption(url, index);
+        }
       };
       reader.readAsDataURL(file);
     });
@@ -312,31 +351,45 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           {messages.map((msg, idx) => (
             <motion.div
               key={msg.id}
-              initial={{ opacity: 0, x: msg.role === 'user' ? 20 : -20, scale: 0.95, filter: "brightness(1) blur(0px)" }}
+              layout
+              initial={{ opacity: 0, y: 15, scale: 0.9, filter: "brightness(1) blur(2px)" }}
               animate={{ 
                 opacity: 1, 
-                x: 0, 
+                y: 0,
                 scale: 1,
-                filter: ["brightness(1) blur(0px)", "brightness(1.2) blur(1px)", "brightness(1) blur(0px)"],
-                boxShadow: [
-                  "0 0 0px rgba(255, 255, 255, 0)",
-                  msg.role === 'ai' ? "0 0 30px rgba(139, 92, 246, 0.4)" : "0 0 30px rgba(34, 211, 238, 0.4)",
-                  "0 0 0px rgba(255, 255, 255, 0)"
-                ]
+                filter: "brightness(1) blur(0px)",
+                boxShadow: msg.role === 'ai' ? [
+                  "0 0 0px rgba(139, 92, 246, 0)",
+                  "0 0 20px rgba(139, 92, 246, 0.2)",
+                  "0 0 0px rgba(139, 92, 246, 0)"
+                ] : "none"
               }}
               transition={{ 
-                duration: 0.6,
-                boxShadow: { duration: 1.5, times: [0, 0.5, 1] },
-                filter: { duration: 1, times: [0, 0.2, 1] }
+                type: "spring",
+                stiffness: 100,
+                damping: 20,
+                filter: { duration: 0.8 },
+                boxShadow: {
+                  duration: 2,
+                  repeat: msg.role === 'ai' ? 1 : 0,
+                  repeatType: "reverse"
+                }
               }}
               className={cn(
                 "flex flex-col max-w-[85%] space-y-2 group relative",
                 msg.role === 'user' ? "ml-auto items-end" : "mr-auto items-start"
               )}
             >
-              {msg.role === 'ai' && (
-                <div className="absolute -inset-1 bg-gradient-to-r from-violet-500/20 via-cyan-400/20 to-fuchsia-500/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
-              )}
+              <AnimatePresence>
+                {msg.role === 'ai' && (
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: [0, 0.4, 0] }}
+                    transition={{ duration: 3, repeat: Infinity }}
+                    className="absolute -inset-2 bg-gradient-to-r from-violet-500/10 via-cyan-400/10 to-fuchsia-500/10 blur-2xl pointer-events-none" 
+                  />
+                )}
+              </AnimatePresence>
               
               <div className={cn(
                 "px-5 py-3 rounded-2xl shadow-xl transition-all duration-300 relative overflow-hidden",
@@ -345,12 +398,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   : "glass-card text-slate-200 rounded-tl-none hover:bg-white/10"
               )}>
                 {/* Magic Shimmer Effect on mount */}
-                <motion.div 
-                  initial={{ x: "-100%" }}
-                  animate={{ x: "100%" }}
-                  transition={{ duration: 1.2, ease: "easeInOut", delay: 0.3 }}
-                  className="absolute inset-0 pointer-events-none bg-gradient-to-r from-transparent via-white/20 to-transparent z-10"
-                />
+                {msg.role === 'ai' && (
+                  <motion.div 
+                    initial={{ x: "-100%" }}
+                    animate={{ x: "100%" }}
+                    transition={{ duration: 1.5, ease: "easeInOut", delay: 0.5 }}
+                    className="absolute inset-0 pointer-events-none bg-gradient-to-r from-transparent via-white/10 to-transparent z-10"
+                  />
+                )}
                 
                 {msg.parts.map((part, pIdx) => (
                   <div key={pIdx}>
@@ -553,17 +608,37 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
           {/* Attachments Preview */}
           {attachments.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-3 px-2">
+            <div className="flex flex-wrap gap-3 mb-4 px-2">
               {attachments.map((a, i) => (
-                <div key={i} className="group relative w-16 h-16 rounded-xl overflow-hidden border border-white/20 shadow-lg">
-                  {a.type === 'image' && <img src={a.url} className="w-full h-full object-cover" />}
-                  {a.type === 'text' && <div className="w-full h-full bg-emerald-500/20 flex items-center justify-center"><Eye className="text-emerald-400" /></div>}
-                  <button 
-                    onClick={() => setAttachments(prev => prev.filter((_, idx) => idx !== i))}
-                    className="absolute inset-0 bg-red-500/80 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all"
-                  >
-                    <Trash2 className="w-6 h-6 text-white" />
-                  </button>
+                <div key={i} className="group relative flex flex-col gap-1 items-center">
+                  <div className="relative w-16 h-16 rounded-xl overflow-hidden border border-white/20 shadow-lg group-hover:border-cyan-500/50 transition-colors">
+                    {a.type === 'image' && <img src={a.url} className="w-full h-full object-cover" />}
+                    {a.type === 'video' && <div className="w-full h-full bg-slate-800 flex items-center justify-center"><Play className="w-6 h-6 text-slate-400" /></div>}
+                    {a.type === 'audio' && <div className="w-full h-full bg-slate-800 flex items-center justify-center"><Volume2 className="w-6 h-6 text-slate-400" /></div>}
+                    {a.type === 'text' && <div className="w-full h-full bg-emerald-500/20 flex items-center justify-center"><Eye className="text-emerald-400" /></div>}
+                    
+                    <button 
+                      onClick={() => setAttachments(prev => prev.filter((_, idx) => idx !== i))}
+                      className="absolute inset-0 bg-red-500/80 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all z-20"
+                    >
+                      <Trash2 className="w-6 h-6 text-white" />
+                    </button>
+                    
+                    {a.isCaptioning && (
+                      <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-10">
+                        <div className="w-4 h-4 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+                      </div>
+                    )}
+                  </div>
+                  {a.caption && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="max-w-[120px] bg-slate-800/80 backdrop-blur-md px-2 py-1 rounded-md border border-white/5 text-[9px] text-slate-300 line-clamp-2 text-center"
+                    >
+                      {a.caption}
+                    </motion.div>
+                  )}
                 </div>
               ))}
             </div>
